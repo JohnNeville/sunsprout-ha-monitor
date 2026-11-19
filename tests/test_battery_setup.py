@@ -1,5 +1,6 @@
 from custom_components.sunsprout_monitor.battery_setup import (
-    ADS_ADDRESSES, DS_ADDRESSES, address_choices, check_satellite_addresses, check_setup, default_energy_mwh, parse_found_addresses)
+    ADS_ADDRESSES, DS_ADDRESSES, address_choices, check_satellite_addresses, check_setup, default_energy_mwh, parse_found_addresses,
+    standard_cell_voltage_mv)
 
 GOOD = {"chemistry": "LiFePO4", "capacity_mah": 4000, "energy_mwh": 0, "charge_current_ma": 1000, "thermistors": "Both"}
 
@@ -75,3 +76,31 @@ def test_address_choices():
     assert address_choices(ADS_ADDRESSES, {"0x18"}, "0x48") == [(a, a) for a in ADS_ADDRESSES]
     assert address_choices(ADS_ADDRESSES, set(), "0x48") == [(a, a) for a in ADS_ADDRESSES]
     assert address_choices(ADS_ADDRESSES, None, "0x48") == [(a, a) for a in ADS_ADDRESSES]
+
+
+def test_standard_cell_voltage():
+    assert standard_cell_voltage_mv("LiFePO4") == 3650
+    assert standard_cell_voltage_mv("Li-ion") == 4200
+
+
+def test_cell_charge_voltage_can_only_lower_the_standard():
+    life = {**GOOD, "chemistry": "LiFePO4"}
+    # 0 and the standard itself are fine and raise nothing
+    for mv in (0, 3650):
+        r = check_setup({**life, "cell_charge_voltage_mv": mv}, 0x0423)
+        assert r.errors == {} and r.warnings == [], mv
+    # a lower limit, as a cell's data sheet may give, is allowed and noted
+    r = check_setup({**life, "cell_charge_voltage_mv": 3600}, 0x0423)
+    assert r.errors == {} and len(r.warnings) == 1 and "3.60 V instead of the standard 3.65 V" in r.warnings[0]
+    assert check_setup({**life, "cell_charge_voltage_mv": 3350}, 0x0423).errors == {}  # exactly 0.30 V under
+    # higher than the standard is never allowed, and neither is a value far under it
+    for mv in (3651, 4200, 3349, 3000):
+        assert check_setup({**life, "cell_charge_voltage_mv": mv}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}, mv
+    # the window follows the chemistry: 4.2 V is the standard for Li-ion and far too high for LiFePO4
+    li = {**GOOD, "chemistry": "Li-ion", "charge_current_ma": 1000}
+    assert check_setup({**li, "cell_charge_voltage_mv": 4200}, 0x0107).errors == {}
+    assert check_setup({**li, "cell_charge_voltage_mv": 4000}, 0x0107).errors == {}
+    assert check_setup({**li, "cell_charge_voltage_mv": 4250}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
+    assert check_setup({**li, "cell_charge_voltage_mv": 3800}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
+    # a board without the setting just does not send it
+    assert check_setup(GOOD, 0x0423).errors == {}

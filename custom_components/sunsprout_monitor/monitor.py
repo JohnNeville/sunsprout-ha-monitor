@@ -65,9 +65,13 @@ class Monitor:
         try:
             self.setup_info[dev_id] = await async_call_action(self.hass, dev, "get_setup_info")
         except ActionUnavailable:
-            self.setup_info[dev_id] = {"setup_state": "unsupported"}
-        except HomeAssistantError as err:  # the board did not answer; try again when it reconnects or in a day
+            # Not there yet is common right after a start or a reconnect, before the board's actions are registered, so it is
+            # asked again on the next pass (a local lookup, no traffic) and not left for a day.
+            self.setup_info.setdefault(dev_id, {"setup_state": "unsupported"})
+            self._info_at.pop(dev_id, None)
+        except HomeAssistantError as err:  # the board did not answer; try again in a few minutes
             _LOGGER.debug("get_setup_info failed for %s: %s", dev_id, err)
+            self._info_at[dev_id] = dt_util.utcnow() - timedelta(hours=SETUP_INFO_MAX_AGE_HOURS) + timedelta(minutes=5)
         finally:
             self._asking.discard(dev_id)
         self.evaluate()
