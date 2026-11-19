@@ -15,7 +15,7 @@ It does not add devices of its own. It reads the boards you already have in Home
 
 - **Home Assistant 2026.11 or newer.**
 - One or more **SunSprout boards**, running the [SunSprout firmware](https://github.com/JohnNeville/SunSprout-firmware) and already added to Home Assistant through the ESPHome integration.
-- For the **guided setup**, firmware that includes the first-time setup actions (`get_setup_info`, `setup_battery` and `scan_i2c`). Boards on older firmware still get every check, without the setup steps.
+- For the **guided setup**, SunSprout firmware **release v2026.11.19.13 or newer**, which has the first-time setup actions (`get_setup_info`, `setup_battery` and `scan_i2c`). Boards on older firmware still get every check, without the setup steps.
 
 ## Installation
 
@@ -147,6 +147,10 @@ To remove it, first delete the integration under **Settings** > **Devices & serv
 **The setup says the board did not accept it.** The message from the board is shown. The usual cause is a value out of range or the board restarting; try again after a minute.
 
 **Something looks wrong.** Look in **Settings** > **System** > **Logs** for `sunsprout_monitor`, and [open an issue](https://github.com/JohnNeville/sunsprout-ha-monitor/issues) with the log lines and your board's firmware version.
+
+## License
+
+[MIT](LICENSE).
 
 ## For developers
 
