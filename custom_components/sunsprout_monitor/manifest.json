@@ -1,0 +1,12 @@
+{
+  "domain": "sunsprout_monitor",
+  "name": "SunSprout Monitor",
+  "codeowners": ["@JohnNeville"],
+  "config_flow": true,
+  "dependencies": ["esphome"],
+  "documentation": "https://github.com/JohnNeville/sunsprout-ha-monitor",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/JohnNeville/sunsprout-ha-monitor/issues",
+  "version": "0.2.0"
+}
