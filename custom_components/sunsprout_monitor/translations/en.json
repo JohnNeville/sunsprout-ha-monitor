@@ -116,14 +116,16 @@
               "capacity_mah": "Capacity",
               "energy_mwh": "Energy (0 works it out)",
               "charge_current_ma": "Default charge current",
-              "thermistors": "Thermistors fitted"
+              "thermistors": "Thermistors fitted",
+              "cell_charge_voltage": "Cell charge voltage (0 = standard)"
             },
             "data_description": {
               "chemistry": "The chemistry of the pack. Li-ion raises the charge limit to 4.2 V; LiFePO4 charges to 3.65 V.",
               "capacity_mah": "The pack's rated capacity. The charger ends the charge at C/10 of this.",
               "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
               "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
-              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it."
+              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one only if the cell's data sheet gives it (for example 3.60 V). It can never be higher than the standard, or more than 0.30 V lower."
             }
           },
           "battery_confirm": {
@@ -169,7 +171,8 @@
           "thermistors_invalid": "Choose which thermistors are fitted.",
           "apply_failed": "The board did not accept the setup: {error}",
           "address_invalid": "Choose one of the listed addresses.",
-          "address_duplicate": "Another satellite already uses this address."
+          "address_duplicate": "Another satellite already uses this address.",
+          "voltage_invalid": "The charge voltage has to be 0 (the standard) or up to 0.30 V under the standard for the chemistry, and never above it."
         }
       },
       "description": "{device}: {detail}. Fix it to enter the pack's details and write them to the charger and fuel gauge before charging."
@@ -186,14 +189,16 @@
               "capacity_mah": "Capacity",
               "energy_mwh": "Energy (0 works it out)",
               "charge_current_ma": "Default charge current",
-              "thermistors": "Thermistors fitted"
+              "thermistors": "Thermistors fitted",
+              "cell_charge_voltage": "Cell charge voltage (0 = standard)"
             },
             "data_description": {
               "chemistry": "The chemistry of the pack. Li-ion raises the charge limit to 4.2 V; LiFePO4 charges to 3.65 V.",
               "capacity_mah": "The pack's rated capacity. The charger ends the charge at C/10 of this.",
               "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
               "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
-              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it."
+              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one only if the cell's data sheet gives it (for example 3.60 V). It can never be higher than the standard, or more than 0.30 V lower."
             }
           },
           "battery_confirm": {
@@ -239,7 +244,8 @@
           "thermistors_invalid": "Choose which thermistors are fitted.",
           "apply_failed": "The board did not accept the setup: {error}",
           "address_invalid": "Choose one of the listed addresses.",
-          "address_duplicate": "Another satellite already uses this address."
+          "address_duplicate": "Another satellite already uses this address.",
+          "voltage_invalid": "The charge voltage has to be 0 (the standard) or up to 0.30 V under the standard for the chemistry, and never above it."
         }
       },
       "description": "{device}: {detail}. Fix it to review the setup with the current values filled in."
@@ -280,14 +286,16 @@
           "capacity_mah": "Capacity",
           "energy_mwh": "Energy (0 works it out)",
           "charge_current_ma": "Default charge current",
-          "thermistors": "Thermistors fitted"
+          "thermistors": "Thermistors fitted",
+          "cell_charge_voltage": "Cell charge voltage (0 = standard)"
         },
         "data_description": {
           "chemistry": "The chemistry of the pack. Li-ion raises the charge limit to 4.2 V; LiFePO4 charges to 3.65 V.",
           "capacity_mah": "The pack's rated capacity. The charger ends the charge at C/10 of this.",
           "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
           "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
-          "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it."
+          "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+          "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one only if the cell's data sheet gives it (for example 3.60 V). It can never be higher than the standard, or more than 0.30 V lower."
         }
       },
       "battery_confirm": {
@@ -341,7 +349,8 @@
       "thermistors_invalid": "Choose which thermistors are fitted.",
       "apply_failed": "The board did not accept the setup: {error}",
       "address_invalid": "Choose one of the listed addresses.",
-      "address_duplicate": "Another satellite already uses this address."
+      "address_duplicate": "Another satellite already uses this address.",
+      "voltage_invalid": "The charge voltage has to be 0 (the standard) or up to 0.30 V under the standard for the chemistry, and never above it."
     },
     "abort": {
       "no_boards": "No SunSprout boards were found among your ESPHome devices."

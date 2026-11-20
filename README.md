@@ -15,7 +15,7 @@ It does not add devices of its own. It reads the boards you already have in Home
 
 - **Home Assistant 2026.11 or newer.**
 - One or more **SunSprout boards**, running the [SunSprout firmware](https://github.com/JohnNeville/SunSprout-firmware) and already added to Home Assistant through the ESPHome integration.
-- For the **guided setup**, SunSprout firmware **release v2026.11.19.13 or newer**, which has the first-time setup actions (`get_setup_info`, `setup_battery` and `scan_i2c`). Boards on older firmware still get every check, without the setup steps.
+- For the **guided setup**, SunSprout firmware **release v2026.11.19.13 or newer**, which has the first-time setup actions (`get_setup_info`, `setup_battery` and `scan_i2c`). The cell charge voltage needs a firmware release that has the **Cell Charge Voltage** setting; with older firmware the guide leaves that question out. Boards on older firmware still get every check, without the setup steps.
 
 ## Installation
 
@@ -60,10 +60,12 @@ To change anything later, select **Configure** on the integration:
 
 A new board starts with safe defaults (a 6000 mAh LiFePO4 cell) and **charging off**. When SunSprout Monitor sees a board whose setup has not been done, it raises a Repair, **Battery setup not completed**. Select **Fix**, or use **Configure** > **Set up a board's battery**, and the guide:
 
-1. Asks for the **cell chemistry** (LiFePO4 or Li-ion), **capacity**, **energy** (leave 0 to have it worked out), the **default charge current** and which **thermistors** are fitted.
-2. Checks them: the ranges, a charge current that is high for the capacity, an energy that does not fit the chemistry, a board with no thermistor (no over- or under-temperature protection), and whether the fuel gauge's chemistry table matches the cell you chose.
+1. Asks for the **cell chemistry** (LiFePO4 or Li-ion), **capacity**, **energy** (leave 0 to have it worked out), the **cell charge voltage**, the **default charge current** and which **thermistors** are fitted.
+2. Checks them: the ranges, a charge current that is high for the capacity, an energy that does not fit the chemistry, a charge voltage above what the chemistry allows, a board with no thermistor (no over- or under-temperature protection), and whether the fuel gauge's chemistry table matches the cell you chose.
 3. Shows exactly what will be written and waits for you to confirm.
 4. Writes the settings to the charger and the fuel gauge, reads them back, and records that the setup is done.
+
+The **cell charge voltage** is the most each cell is charged to, and it is what protects the cell. Leave it at 0 to use the standard for the chemistry (3.65 V for LiFePO4, 4.20 V for Li-ion). If your cell's data sheet gives a **lower** limit (a 3.60 V LiFePO4 cell, for example), enter it. It can never be set **higher** than the standard, or more than 0.30 V lower, and the board and its charger refuse a value outside that, so a typing mistake cannot overcharge a cell.
 
 **It never turns charging on.** When you are ready, turn on **Enable Charging** on the board yourself.
 

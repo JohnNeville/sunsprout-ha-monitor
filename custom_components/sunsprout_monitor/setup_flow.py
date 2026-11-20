@@ -18,7 +18,7 @@ from homeassistant.helpers.selector import (
 from .device_actions import ActionUnavailable, async_call_action, power_cycle_entity, satellites
 from .battery_setup import (
     ADS_ADDRESSES, CAPACITY_RANGE_MAH, CHARGE_CURRENT_RANGE_MA, CHEMISTRIES, DS_ADDRESSES, ENERGY_RANGE_MWH, THERMISTORS,
-    address_choices, check_satellite_addresses, check_setup, default_energy_mwh, parse_found_addresses)
+    address_choices, check_satellite_addresses, check_setup, default_energy_mwh, parse_found_addresses, standard_cell_voltage_mv)
 
 
 def _box(low, high, step, unit):
@@ -48,14 +48,24 @@ class BatterySetupMixin:
     def _info(self) -> dict[str, Any]:
         return self._monitor.setup_info.get(self._dev_id) or {}
 
+    def _supports_voltage(self) -> bool:
+        """Only firmware that reports the cell charge voltage takes it; older firmware has no such setting."""
+        return self._info().get("cell_charge_voltage_mv") is not None
+
     def _defaults(self) -> dict[str, Any]:
         """What the board has now, so a redo or an "outdated" setup starts from the current values."""
         info = self._info()
         energy = info.get("energy_mwh") if info.get("setup_state") in ("outdated", "modified", "complete") else 0
+        chemistry = info.get("chemistry", CHEMISTRIES[0])
+        # 0 is "the standard for the chemistry", so a board already on the standard shows 0, and one on a lower limit shows it
+        voltage = info.get("cell_charge_voltage_mv") or 0
+        if voltage == standard_cell_voltage_mv(chemistry):
+            voltage = 0
         return {
-            "chemistry": info.get("chemistry", CHEMISTRIES[0]),
+            "chemistry": chemistry,
             "capacity_mah": info.get("capacity_mah", 6000),
             "energy_mwh": energy or 0,
+            "cell_charge_voltage": voltage / 1000,
             "charge_current_ma": info.get("charge_current_ma", 1000),
             "thermistors": info.get("thermistors", THERMISTORS[0]),
         }
@@ -65,6 +75,8 @@ class BatterySetupMixin:
             vol.Required("chemistry", default=current["chemistry"]): _choice(CHEMISTRIES),
             vol.Required("capacity_mah", default=current["capacity_mah"]): _box(*CAPACITY_RANGE_MAH, 50, "mAh"),
             vol.Required("energy_mwh", default=current["energy_mwh"]): _box(0, ENERGY_RANGE_MWH[1], 10, "mWh"),
+            **({vol.Required("cell_charge_voltage", default=current["cell_charge_voltage"]): _box(0, 4.2, 0.01, "V")}
+               if self._supports_voltage() else {}),
             vol.Required("charge_current_ma", default=current["charge_current_ma"]): _box(*CHARGE_CURRENT_RANGE_MA, 50, "mA"),
             vol.Required("thermistors", default=current["thermistors"]): _choice(THERMISTORS),
         })
@@ -79,14 +91,27 @@ class BatterySetupMixin:
                 "charge_current_ma": int(user_input["charge_current_ma"]),
                 "thermistors": user_input["thermistors"],
             }
+            if self._supports_voltage():
+                values["cell_charge_voltage_mv"] = round(user_input["cell_charge_voltage"] * 1000)
             result = check_setup(values, self._info().get("gauge_chemistry_id"))
             if not result.errors:
                 self._values, self._warnings = values, result.warnings
                 return await self.async_step_battery_confirm()
-            errors = result.errors
+            errors = {("cell_charge_voltage" if k == "cell_charge_voltage_mv" else k): v for k, v in result.errors.items()}
         return self.async_show_form(
             step_id="battery_values", data_schema=self._values_schema(user_input or self._defaults()), errors=errors,
             description_placeholders={"device": self._label()})
+
+    @staticmethod
+    def _voltage_line(v: dict[str, Any]) -> str:
+        """The summary line for the charge voltage, or nothing when the board does not have that setting."""
+        if "cell_charge_voltage_mv" not in v:
+            return ""
+        standard = standard_cell_voltage_mv(v["chemistry"])
+        mv = v["cell_charge_voltage_mv"]
+        if not mv or mv == standard:
+            return f"- Cell charge voltage: {standard / 1000:.2f} V (the standard for {v['chemistry']})\n"
+        return f"- Cell charge voltage: {mv / 1000:.2f} V (the standard is {standard / 1000:.2f} V)\n"
 
     def _confirm_placeholders(self, error: str = "") -> dict[str, str]:
         v = self._values
@@ -94,7 +119,7 @@ class BatterySetupMixin:
         summary = (
             f"- Cell chemistry: {v['chemistry']}\n- Capacity: {v['capacity_mah']} mAh\n- Energy: {energy} mWh"
             f"{' (worked out)' if not v['energy_mwh'] else ''}\n- Default charge current: {v['charge_current_ma']} mA\n"
-            f"- Thermistors fitted: {v['thermistors']}")
+            f"{self._voltage_line(v)}- Thermistors fitted: {v['thermistors']}")
         warnings = "".join(f"\n\n**Check:** {w}" for w in self._warnings)
         return {"device": self._label(), "summary": summary, "warnings": warnings, "error": error}
 

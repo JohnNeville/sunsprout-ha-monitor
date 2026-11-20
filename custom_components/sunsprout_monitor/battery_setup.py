@@ -10,6 +10,12 @@ CHEMISTRIES = ("LiFePO4", "Li-ion")
 THERMISTORS = ("Both", "Charger Only", "Gauge Only", "None")
 NOMINAL_CELL_VOLTS = {"LiFePO4": 3.2, "Li-ion": 3.7}
 
+# The charge voltage limit per cell is what protects the cell. The chemistry sets the standard one, and a cell whose data sheet gives
+# a lower limit can use it, down to this far under the standard. It can never be higher: the firmware and the charger driver
+# refuse that too, so a mistake here cannot overcharge a cell.
+STANDARD_CELL_VOLTAGE_MV = {"LiFePO4": 3650, "Li-ion": 4200}
+CELL_VOLTAGE_MAX_DROP_MV = 300
+
 CAPACITY_RANGE_MAH = (100, 20000)
 ENERGY_RANGE_MWH = (100, 32767)
 CHARGE_CURRENT_RANGE_MA = (100, 2000)
@@ -23,6 +29,11 @@ ENERGY_TOLERANCE = 0.2
 # temperature 1-Wire bridge) from AD0 and AD1. These are the options of the two selects the firmware puts on each satellite.
 ADS_ADDRESSES = ("0x48", "0x49", "0x4A", "0x4B")
 DS_ADDRESSES = ("0x18", "0x19", "0x1A", "0x1B")
+
+
+def standard_cell_voltage_mv(chemistry: str) -> int:
+    """The per-cell charge voltage limit the chemistry sets, in mV."""
+    return STANDARD_CELL_VOLTAGE_MV.get(chemistry, STANDARD_CELL_VOLTAGE_MV["Li-ion"])
 
 
 def default_energy_mwh(chemistry: str, capacity_mah: float) -> int:
@@ -51,6 +62,7 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
     energy = values.get("energy_mwh") or 0
     current = values.get("charge_current_ma")
     thermistors = values.get("thermistors")
+    voltage = values.get("cell_charge_voltage_mv") or 0  # 0 is the chemistry's standard
 
     if chemistry not in CHEMISTRIES:
         out.errors["chemistry"] = "chemistry_invalid"
@@ -62,6 +74,10 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
         out.errors["charge_current_ma"] = "current_invalid"
     if thermistors not in THERMISTORS:
         out.errors["thermistors"] = "thermistors_invalid"
+    if chemistry in CHEMISTRIES and voltage != 0:
+        standard = standard_cell_voltage_mv(chemistry)
+        if not standard - CELL_VOLTAGE_MAX_DROP_MV <= voltage <= standard:
+            out.errors["cell_charge_voltage_mv"] = "voltage_invalid"
     if out.errors:
         return out
 
@@ -76,6 +92,11 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
             out.warnings.append(
                 f"The energy of {energy} mWh is far from {expected} mWh ({capacity} mAh x {NOMINAL_CELL_VOLTS[chemistry]} V). "
                 "Use 0 to have it worked out.")
+    if voltage and voltage != standard_cell_voltage_mv(chemistry):
+        out.warnings.append(
+            f"The cell will be charged to {voltage / 1000:.2f} V instead of the standard "
+            f"{standard_cell_voltage_mv(chemistry) / 1000:.2f} V for {chemistry}. That is safe for the cell but stores a little less energy; "
+            "use the limit from the cell's data sheet.")
     if thermistors == "None":
         out.warnings.append("With no thermistor fitted the charger cannot stop charging when the pack is too hot or too cold.")
     elif thermistors == "Gauge Only":
