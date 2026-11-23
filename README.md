@@ -65,7 +65,7 @@ A new board starts with safe defaults (a 6000 mAh LiFePO4 cell) and **charging o
 3. Shows exactly what will be written and waits for you to confirm.
 4. Writes the settings to the charger and the fuel gauge, reads them back, and records that the setup is done.
 
-The **cell charge voltage** is the most each cell is charged to, and it is what protects the cell. Leave it at 0 to use the standard for the chemistry (3.65 V for LiFePO4, 4.20 V for Li-ion). If your cell's data sheet gives a **lower** limit (a 3.60 V LiFePO4 cell, for example), enter it. It can never be set **higher** than the standard, or more than 0.30 V lower, and the board and its charger refuse a value outside that, so a typing mistake cannot overcharge a cell.
+The **cell charge voltage** is the most each cell is charged to, and it is what protects the cell. Leave it at 0 to use the standard for the chemistry (3.65 V for LiFePO4, 4.20 V for Li-ion). If your cell's data sheet gives a **lower** limit (a 3.60 V LiFePO4 cell, for example), enter it. It can never be set **higher** than the standard, and the board and its charger refuse a higher value, so a typing mistake cannot overcharge a cell. A lower value is always the safe direction, so it is accepted (down to 3.35 V), with a warning when it is more than 0.30 V under the standard, because the cell then stores much less energy.
 
 **It never turns charging on.** When you are ready, turn on **Enable Charging** on the board yourself.
 
