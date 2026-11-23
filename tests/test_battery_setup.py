@@ -92,15 +92,18 @@ def test_cell_charge_voltage_can_only_lower_the_standard():
     # a lower limit, as a cell's data sheet may give, is allowed and noted
     r = check_setup({**life, "cell_charge_voltage_mv": 3600}, 0x0423)
     assert r.errors == {} and len(r.warnings) == 1 and "3.60 V instead of the standard 3.65 V" in r.warnings[0]
-    assert check_setup({**life, "cell_charge_voltage_mv": 3350}, 0x0423).errors == {}  # exactly 0.30 V under
-    # higher than the standard is never allowed, and neither is a value far under it
-    for mv in (3651, 4200, 3349, 3000):
-        assert check_setup({**life, "cell_charge_voltage_mv": mv}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}, mv
-    # the window follows the chemistry: 4.2 V is the standard for Li-ion and far too high for LiFePO4
+    # lower is the safe direction, so the lowest the firmware takes is allowed too (exactly 0.30 V under is not "more than" 0.30 V)
+    r = check_setup({**life, "cell_charge_voltage_mv": 3350}, 0x0423)
+    assert r.errors == {} and len(r.warnings) == 1
     li = {**GOOD, "chemistry": "Li-ion", "charge_current_ma": 1000}
+    r = check_setup({**li, "cell_charge_voltage_mv": 3650}, 0x0107)  # the value an upgraded Li-ion board starts with
+    assert r.errors == {} and any("much less energy" in w for w in r.warnings)
     assert check_setup({**li, "cell_charge_voltage_mv": 4200}, 0x0107).errors == {}
     assert check_setup({**li, "cell_charge_voltage_mv": 4000}, 0x0107).errors == {}
+    # higher than the standard is never allowed, and neither is a value under the firmware's minimum
+    for mv in (3651, 4200, 3349, 3000):
+        assert check_setup({**life, "cell_charge_voltage_mv": mv}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}, mv
     assert check_setup({**li, "cell_charge_voltage_mv": 4250}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
-    assert check_setup({**li, "cell_charge_voltage_mv": 3800}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
+    assert check_setup({**li, "cell_charge_voltage_mv": 3300}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
     # a board without the setting just does not send it
     assert check_setup(GOOD, 0x0423).errors == {}

@@ -11,10 +11,12 @@ THERMISTORS = ("Both", "Charger Only", "Gauge Only", "None")
 NOMINAL_CELL_VOLTS = {"LiFePO4": 3.2, "Li-ion": 3.7}
 
 # The charge voltage limit per cell is what protects the cell. The chemistry sets the standard one, and a cell whose data sheet gives
-# a lower limit can use it, down to this far under the standard. It can never be higher: the firmware and the charger driver
-# refuse that too, so a mistake here cannot overcharge a cell.
+# a lower limit can use it: lower is the safe direction (the cell charges less), so any value down to the floor is allowed. It can never
+# be higher: the firmware and the charger driver refuse that too, so a mistake here cannot overcharge a cell. A value this far under the
+# standard is allowed but warned about, because the cell then stores much less energy.
 STANDARD_CELL_VOLTAGE_MV = {"LiFePO4": 3650, "Li-ion": 4200}
-CELL_VOLTAGE_MAX_DROP_MV = 300
+CELL_VOLTAGE_MIN_MV = 3350          # the firmware's setting does not go lower
+CELL_VOLTAGE_UNUSUALLY_LOW_MV = 300  # under the standard by more than this: a warning
 
 CAPACITY_RANGE_MAH = (100, 20000)
 ENERGY_RANGE_MWH = (100, 32767)
@@ -76,7 +78,7 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
         out.errors["thermistors"] = "thermistors_invalid"
     if chemistry in CHEMISTRIES and voltage != 0:
         standard = standard_cell_voltage_mv(chemistry)
-        if not standard - CELL_VOLTAGE_MAX_DROP_MV <= voltage <= standard:
+        if not CELL_VOLTAGE_MIN_MV <= voltage <= standard:
             out.errors["cell_charge_voltage_mv"] = "voltage_invalid"
     if out.errors:
         return out
@@ -92,6 +94,11 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
             out.warnings.append(
                 f"The energy of {energy} mWh is far from {expected} mWh ({capacity} mAh x {NOMINAL_CELL_VOLTS[chemistry]} V). "
                 "Use 0 to have it worked out.")
+    if voltage and voltage < standard_cell_voltage_mv(chemistry) - CELL_VOLTAGE_UNUSUALLY_LOW_MV:
+        out.warnings.append(
+            f"A cell charge voltage of {voltage / 1000:.2f} V is more than {CELL_VOLTAGE_UNUSUALLY_LOW_MV / 1000:.2f} V under the standard "
+            f"{standard_cell_voltage_mv(chemistry) / 1000:.2f} V for {chemistry}, so the cell will store much less energy. It is safe for the "
+            "cell. Use 0 for the standard if that is not what you meant.")
     if voltage and voltage != standard_cell_voltage_mv(chemistry):
         out.warnings.append(
             f"The cell will be charged to {voltage / 1000:.2f} V instead of the standard "
