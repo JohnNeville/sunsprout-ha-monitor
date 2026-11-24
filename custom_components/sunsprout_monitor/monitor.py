@@ -10,8 +10,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er, issue_registry as ir
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
+from .board import SIGNAL_BOARD_UPDATE
 from .const import DOMAIN, FIXABLE_KEYS, KEY_ENTITIES, SETUP_INFO_MAX_AGE_HOURS, UNAVAILABLE_MINUTES
 from .device_actions import ActionUnavailable, async_call_action, entry_ids
 from .rules import Problem, check, hold_problems, windows_from_options
@@ -32,12 +34,15 @@ class Monitor:
         self._info_at: dict[str, datetime] = {}  # device id -> when the board was last asked
         self._signature: dict[str, tuple] = {}  # device id -> (reachable, Cell Chemistry) when last evaluated
         self._asking: set[str] = set()
+        self.problems_by_device: dict[str, list[Problem]] = {}  # ESPHome device id -> problems, for the board's monitor device
+        self._add_entities: dict[str, object] = {}  # platform -> async_add_entities
+        self._with_entities: set[str] = set()  # device ids whose monitor device and entities exist
 
     def _boards(self):
         """Yield (device, {lower name: State}) for ESPHome devices that look like SunSprout."""
         devs, ents = dr.async_get(self.hass), er.async_get(self.hass)
         esphome_entries = {e.entry_id for e in self.hass.config_entries.async_entries("esphome")}
-        for dev in devs.devices:
+        for dev in list(devs.devices):  # a copy: evaluating registers monitor devices while this runs
             if not esphome_entries & entry_ids(dev):
                 continue
             by_name = {}
@@ -48,6 +53,25 @@ class Monitor:
                     by_name[name] = st
             if all(k.lower() in by_name for k in KEY_ENTITIES):
                 yield dev, by_name
+
+    def register_platform(self, platform: str, async_add_entities) -> None:
+        """Each platform hands over its add-entities callback, so a board found later gets its entities."""
+        self._add_entities[platform] = async_add_entities
+        self._with_entities.clear()  # create the entities for the boards already known
+        self.evaluate()
+
+    def _ensure_monitor_device(self, dev, label: str) -> None:
+        """A device connected via the board's ESPHome device, with a problem flag, a count and the setup state."""
+        if dev.id in self._with_entities or len(self._add_entities) < 2:
+            return
+        from .binary_sensor import BoardProblem
+        from .sensor import BoardProblemCount, BoardSetupState
+        dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=self.entry.entry_id, identifiers={(DOMAIN, dev.id)}, name=f"{label} monitor",
+            manufacturer="SunSprout", model="SunSprout Monitor", via_device_id=dev.id)
+        self._add_entities["binary_sensor"]([BoardProblem.create(self, dev.id)])
+        self._add_entities["sensor"]([BoardProblemCount.create(self, dev.id), BoardSetupState.create(self, dev.id)])
+        self._with_entities.add(dev.id)
 
     def board_devices(self) -> list[tuple[str, str]]:
         """(device id, label) of each SunSprout board found, for the setup flow's pick list."""
@@ -123,13 +147,15 @@ class Monitor:
                     (now - s.last_changed) > timedelta(minutes=UNAVAILABLE_MINUTES) for s in gone):
                 found = [Problem("unavailable", f"no data for over {UNAVAILABLE_MINUTES} min")]
             self.problems[label] = found
+            self.problems_by_device[dev.id] = found
+            self._ensure_monitor_device(dev, label)
             for p in found:
                 iid = f"{dev.id}_{p.key}"
                 wanted.add(iid)
                 fixable = p.key in FIXABLE_KEYS
                 ir.async_create_issue(
                     self.hass, DOMAIN, iid, is_fixable=fixable, severity=ir.IssueSeverity.WARNING,
-                    data={"device_id": dev.id} if fixable else None,
+                    data={"device_id": dev.id, "key": p.key} if fixable else None,
                     translation_key=p.key,
                     translation_placeholders={"device": label, "detail": p.detail})
         stale = self._raised - wanted
@@ -140,3 +166,15 @@ class Monitor:
         for iid in stale:
             ir.async_delete_issue(self.hass, DOMAIN, iid)
         self._raised = wanted
+        if seen:
+            self._remove_orphans()
+        async_dispatcher_send(self.hass, SIGNAL_BOARD_UPDATE)
+
+    def _remove_orphans(self) -> None:
+        """Take a monitor device off when its board's ESPHome device has been removed."""
+        devs = dr.async_get(self.hass)
+        for mon_dev in dr.async_entries_for_config_entry(devs, self.entry.entry_id):
+            ident = next((i for d, i in mon_dev.identifiers if d == DOMAIN), None)
+            if ident and devs.async_get(ident) is None:
+                devs.async_update_device(mon_dev.id, remove_config_entry_id=self.entry.entry_id)
+                self._with_entities.discard(ident)

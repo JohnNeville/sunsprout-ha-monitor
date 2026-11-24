@@ -1,4 +1,4 @@
-"""SunSprout Monitor: Repairs issues for SunSprout ESPHome setup problems."""
+"""SunSprout Monitor: Repairs issues and a linked monitor device for each SunSprout ESPHome board."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from .const import DOMAIN
 from .monitor import Monitor
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "binary_sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

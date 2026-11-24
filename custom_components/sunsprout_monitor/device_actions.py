@@ -74,3 +74,11 @@ def power_cycle_entity(hass: HomeAssistant, hub_dev) -> str | None:
         if ent.domain == "button" and (ent.original_name or ent.name or "").lower() == "power cycle board" and not ent.disabled:
             return ent.entity_id
     return None
+
+
+def find_entity(hass: HomeAssistant, hub_dev, domain: str, name: str) -> str | None:
+    """The entity id of a board's entity of one domain with one name (lower case, as the board names it), if it is enabled."""
+    for ent in er.async_entries_for_device(er.async_get(hass), hub_dev.id):
+        if ent.domain == domain and not ent.disabled and (ent.original_name or ent.name or "").lower() == name:
+            return ent.entity_id
+    return None
