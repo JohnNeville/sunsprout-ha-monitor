@@ -380,6 +380,8 @@
               "energy_mwh": "Energy (0 works it out)",
               "charge_current_ma": "Default charge current",
               "thermistors": "Thermistors fitted",
+              "max_charge_temperature_c": "Highest charging temperature (0 = 45 °C)",
+              "termination_current_ma": "Charge termination current (0 = automatic)",
               "cell_charge_voltage": "Cell charge voltage (0 = standard)"
             },
             "data_description": {
@@ -388,6 +390,8 @@
               "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
               "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
               "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "max_charge_temperature_c": "The cell's highest charging temperature, from its data sheet (30 to 53 °C). Charging stops there and resumes 2 °C lower. 0 uses 45 °C.",
+              "termination_current_ma": "The current the charge ends at (40 to 1000 mA, in steps of 40). 0 is automatic: 40 mA for LiFePO4, C/10 for Li-ion. The fuel gauge's taper current follows it.",
               "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one if the cell's data sheet gives it (for example 3.60 V); lower is always the safe direction. It can never be higher than the standard."
             }
           },
@@ -431,6 +435,10 @@
           "capacity_invalid": "The capacity has to be 100 to 20000 mAh.",
           "energy_invalid": "The energy has to be 0 or 100 to 32767 mWh.",
           "current_invalid": "The charge current has to be 100 to 2000 mA.",
+      "temperature_invalid": "The highest charging temperature has to be 0 (the default) or 30 to 53 °C.",
+      "termination_invalid": "The termination current has to be 0 (automatic) or 40 to 1000 mA in steps of 40.",
+          "temperature_invalid": "The highest charging temperature has to be 0 (the default) or 30 to 53 °C.",
+          "termination_invalid": "The termination current has to be 0 (automatic) or 40 to 1000 mA in steps of 40.",
           "thermistors_invalid": "Choose which thermistors are fitted.",
           "apply_failed": "The board did not accept the setup: {error}",
           "address_invalid": "Choose one of the listed addresses.",
@@ -453,6 +461,8 @@
               "energy_mwh": "Energy (0 works it out)",
               "charge_current_ma": "Default charge current",
               "thermistors": "Thermistors fitted",
+              "max_charge_temperature_c": "Highest charging temperature (0 = 45 °C)",
+              "termination_current_ma": "Charge termination current (0 = automatic)",
               "cell_charge_voltage": "Cell charge voltage (0 = standard)"
             },
             "data_description": {
@@ -461,6 +471,8 @@
               "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
               "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
               "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "max_charge_temperature_c": "The cell's highest charging temperature, from its data sheet (30 to 53 °C). Charging stops there and resumes 2 °C lower. 0 uses 45 °C.",
+              "termination_current_ma": "The current the charge ends at (40 to 1000 mA, in steps of 40). 0 is automatic: 40 mA for LiFePO4, C/10 for Li-ion. The fuel gauge's taper current follows it.",
               "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one if the cell's data sheet gives it (for example 3.60 V); lower is always the safe direction. It can never be higher than the standard."
             }
           },
@@ -504,6 +516,10 @@
           "capacity_invalid": "The capacity has to be 100 to 20000 mAh.",
           "energy_invalid": "The energy has to be 0 or 100 to 32767 mWh.",
           "current_invalid": "The charge current has to be 100 to 2000 mA.",
+      "temperature_invalid": "The highest charging temperature has to be 0 (the default) or 30 to 53 °C.",
+      "termination_invalid": "The termination current has to be 0 (automatic) or 40 to 1000 mA in steps of 40.",
+          "temperature_invalid": "The highest charging temperature has to be 0 (the default) or 30 to 53 °C.",
+          "termination_invalid": "The termination current has to be 0 (automatic) or 40 to 1000 mA in steps of 40.",
           "thermistors_invalid": "Choose which thermistors are fitted.",
           "apply_failed": "The board did not accept the setup: {error}",
           "address_invalid": "Choose one of the listed addresses.",
@@ -558,6 +574,8 @@
           "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
           "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
           "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "max_charge_temperature_c": "The cell's highest charging temperature, from its data sheet (30 to 53 °C). Charging stops there and resumes 2 °C lower. 0 uses 45 °C.",
+              "termination_current_ma": "The current the charge ends at (40 to 1000 mA, in steps of 40). 0 is automatic: 40 mA for LiFePO4, C/10 for Li-ion. The fuel gauge's taper current follows it.",
           "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one if the cell's data sheet gives it (for example 3.60 V); lower is always the safe direction. It can never be higher than the standard."
         }
       },
@@ -609,6 +627,8 @@
       "capacity_invalid": "The capacity has to be 100 to 20000 mAh.",
       "energy_invalid": "The energy has to be 0 or 100 to 32767 mWh.",
       "current_invalid": "The charge current has to be 100 to 2000 mA.",
+      "temperature_invalid": "The highest charging temperature has to be 0 (the default) or 30 to 53 °C.",
+      "termination_invalid": "The termination current has to be 0 (automatic) or 40 to 1000 mA in steps of 40.",
       "thermistors_invalid": "Choose which thermistors are fitted.",
       "apply_failed": "The board did not accept the setup: {error}",
       "address_invalid": "Choose one of the listed addresses.",
