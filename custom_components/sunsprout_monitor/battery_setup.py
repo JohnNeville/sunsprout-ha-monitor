@@ -21,6 +21,12 @@ CELL_VOLTAGE_UNUSUALLY_LOW_MV = 300  # under the standard by more than this: a w
 CAPACITY_RANGE_MAH = (100, 20000)
 ENERGY_RANGE_MWH = (100, 32767)
 CHARGE_CURRENT_RANGE_MA = (100, 2000)
+# The cell's highest charging temperature (degC) and the charger's termination current (mA, in steps of 40). 0 means the default:
+# 45 degC, and the automatic current (40 mA for LiFePO4, C/10 for Li-ion).
+MAX_CHARGE_TEMP_RANGE_C = (30, 53)
+DEFAULT_MAX_CHARGE_TEMP_C = 45
+TERMINATION_RANGE_MA = (40, 1000)
+TERMINATION_STEP_MA = 40
 
 # Charge current above this fraction of the capacity is unusual enough to ask the user to check the cell's data sheet.
 UNUSUAL_C_RATE = {"LiFePO4": 0.5, "Li-ion": 1.0}
@@ -36,6 +42,14 @@ DS_ADDRESSES = ("0x18", "0x19", "0x1A", "0x1B")
 def standard_cell_voltage_mv(chemistry: str) -> int:
     """The per-cell charge voltage limit the chemistry sets, in mV."""
     return STANDARD_CELL_VOLTAGE_MV.get(chemistry, STANDARD_CELL_VOLTAGE_MV["Li-ion"])
+
+
+def auto_termination_ma(chemistry: str, capacity_mah: float) -> int:
+    """The termination current the firmware fills in: the LiFePO4 minimum, or C/10 in steps of 40 mA for Li-ion."""
+    if chemistry == "LiFePO4":
+        return TERMINATION_RANGE_MA[0]
+    steps = round(capacity_mah / 10 / TERMINATION_STEP_MA)
+    return int(min(TERMINATION_RANGE_MA[1], max(TERMINATION_RANGE_MA[0], steps * TERMINATION_STEP_MA)))
 
 
 def default_energy_mwh(chemistry: str, capacity_mah: float) -> int:
@@ -65,6 +79,8 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
     current = values.get("charge_current_ma")
     thermistors = values.get("thermistors")
     voltage = values.get("cell_charge_voltage_mv") or 0  # 0 is the chemistry's standard
+    max_temp = values.get("max_charge_temperature_c") or 0  # 0 is the default, 45
+    termination = values.get("termination_current_ma") or 0  # 0 is automatic
 
     if chemistry not in CHEMISTRIES:
         out.errors["chemistry"] = "chemistry_invalid"
@@ -80,8 +96,23 @@ def check_setup(values: dict, gauge_chem_id: int | None = None) -> SetupCheck:
         standard = standard_cell_voltage_mv(chemistry)
         if not CELL_VOLTAGE_MIN_MV <= voltage <= standard:
             out.errors["cell_charge_voltage_mv"] = "voltage_invalid"
+    if max_temp != 0 and _range_error(max_temp, MAX_CHARGE_TEMP_RANGE_C):
+        out.errors["max_charge_temperature_c"] = "temperature_invalid"
+    if termination != 0 and (_range_error(termination, TERMINATION_RANGE_MA) or termination % TERMINATION_STEP_MA):
+        out.errors["termination_current_ma"] = "termination_invalid"
     if out.errors:
         return out
+
+    if termination and termination >= current:
+        out.warnings.append(
+            f"A termination current of {termination} mA is not below the charge current of {current} mA, so the charge would end at once.")
+    elif termination and termination > capacity * 0.2:
+        out.warnings.append(
+            f"A termination current of {termination} mA is above C/5 for a {capacity} mAh cell, so the charge will end early and "
+            "the cell will not be full. Check the cell's data sheet.")
+    if max_temp and max_temp > 50:
+        out.warnings.append(
+            f"Charging is allowed up to {max_temp} C. Most lithium cells are rated to charge only up to 45 to 50 C; check the data sheet.")
 
     limit = UNUSUAL_C_RATE[chemistry]
     if current > capacity * limit:

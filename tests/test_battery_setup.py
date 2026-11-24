@@ -107,3 +107,23 @@ def test_cell_charge_voltage_can_only_lower_the_standard():
     assert check_setup({**li, "cell_charge_voltage_mv": 3300}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
     # a board without the setting just does not send it
     assert check_setup(GOOD, 0x0423).errors == {}
+
+
+def test_charge_options():
+    from custom_components.sunsprout_monitor.battery_setup import auto_termination_ma
+    assert auto_termination_ma("LiFePO4", 4000) == 40
+    assert auto_termination_ma("Li-ion", 2000) == 200
+    assert auto_termination_ma("Li-ion", 2500) == 240   # 250 rounds to the 40 mA step
+    assert auto_termination_ma("Li-ion", 100) == 40
+    assert auto_termination_ma("Li-ion", 20000) == 1000
+    ok = {**GOOD, "max_charge_temperature_c": 48, "termination_current_ma": 80}
+    assert check_setup(ok).errors == {}
+    assert check_setup({**GOOD, "max_charge_temperature_c": 0, "termination_current_ma": 0}).errors == {}  # defaults
+    for t in (29, 54, 100):
+        assert check_setup({**GOOD, "max_charge_temperature_c": t}).errors == {"max_charge_temperature_c": "temperature_invalid"}
+    for ma in (20, 50, 1040, 1001):
+        assert check_setup({**GOOD, "termination_current_ma": ma}).errors == {"termination_current_ma": "termination_invalid"}
+    assert any("charge would end at once" in w for w in check_setup({**GOOD, "termination_current_ma": 1000}).warnings)
+    assert any("above C/5" in w for w in check_setup({**GOOD, "termination_current_ma": 880}).warnings)
+    assert any("45 to 50 C" in w for w in check_setup({**GOOD, "max_charge_temperature_c": 52}).warnings)
+    assert not check_setup({**GOOD, "max_charge_temperature_c": 48}).warnings

@@ -17,8 +17,9 @@ from homeassistant.helpers.selector import (
 
 from .device_actions import ActionUnavailable, async_call_action, power_cycle_entity, satellites
 from .battery_setup import (
-    ADS_ADDRESSES, CAPACITY_RANGE_MAH, CHARGE_CURRENT_RANGE_MA, CHEMISTRIES, DS_ADDRESSES, ENERGY_RANGE_MWH, THERMISTORS,
-    address_choices, check_satellite_addresses, check_setup, default_energy_mwh, parse_found_addresses, standard_cell_voltage_mv)
+    ADS_ADDRESSES, CAPACITY_RANGE_MAH, CHARGE_CURRENT_RANGE_MA, CHEMISTRIES, DEFAULT_MAX_CHARGE_TEMP_C, DS_ADDRESSES, ENERGY_RANGE_MWH,
+    MAX_CHARGE_TEMP_RANGE_C, TERMINATION_RANGE_MA, TERMINATION_STEP_MA, THERMISTORS, address_choices, auto_termination_ma,
+    check_satellite_addresses, check_setup, default_energy_mwh, parse_found_addresses, standard_cell_voltage_mv)
 
 
 def _box(low, high, step, unit):
@@ -52,6 +53,10 @@ class BatterySetupMixin:
         """Only firmware that reports the cell charge voltage takes it; older firmware has no such setting."""
         return self._info().get("cell_charge_voltage_mv") is not None
 
+    def _supports_charge_options(self) -> bool:
+        """Only firmware with setup schema 3 reports the highest charging temperature and the termination current."""
+        return self._info().get("max_charge_temperature_c") is not None
+
     def _defaults(self) -> dict[str, Any]:
         """What the board has now, so a redo or an "outdated" setup starts from the current values."""
         info = self._info()
@@ -61,9 +66,16 @@ class BatterySetupMixin:
         voltage = info.get("cell_charge_voltage_mv") or 0
         if voltage == standard_cell_voltage_mv(chemistry):
             voltage = 0
+        capacity = info.get("capacity_mah", 6000)
+        # 0 is "automatic", so a board already on the automatic current for its chemistry and capacity shows 0
+        termination = info.get("termination_current_ma") or 0
+        if termination == auto_termination_ma(chemistry, capacity):
+            termination = 0
         return {
             "chemistry": chemistry,
-            "capacity_mah": info.get("capacity_mah", 6000),
+            "max_charge_temperature_c": info.get("max_charge_temperature_c", DEFAULT_MAX_CHARGE_TEMP_C),
+            "termination_current_ma": termination,
+            "capacity_mah": capacity,
             "energy_mwh": energy or 0,
             "cell_charge_voltage": voltage / 1000,
             "charge_current_ma": info.get("charge_current_ma", 1000),
@@ -79,6 +91,11 @@ class BatterySetupMixin:
                if self._supports_voltage() else {}),
             vol.Required("charge_current_ma", default=current["charge_current_ma"]): _box(*CHARGE_CURRENT_RANGE_MA, 50, "mA"),
             vol.Required("thermistors", default=current["thermistors"]): _choice(THERMISTORS),
+            **({vol.Required("max_charge_temperature_c", default=current["max_charge_temperature_c"]):
+                    _box(*MAX_CHARGE_TEMP_RANGE_C, 1, "°C"),
+                vol.Required("termination_current_ma", default=current["termination_current_ma"]):
+                    _box(0, TERMINATION_RANGE_MA[1], TERMINATION_STEP_MA, "mA")}
+               if self._supports_charge_options() else {}),
         })
 
     async def async_step_battery_values(self, user_input: dict[str, Any] | None = None) -> FlowResult:
@@ -93,6 +110,9 @@ class BatterySetupMixin:
             }
             if self._supports_voltage():
                 values["cell_charge_voltage_mv"] = round(user_input["cell_charge_voltage"] * 1000)
+            if self._supports_charge_options():
+                values["max_charge_temperature_c"] = int(user_input["max_charge_temperature_c"])
+                values["termination_current_ma"] = int(user_input["termination_current_ma"])
             result = check_setup(values, self._info().get("gauge_chemistry_id"))
             if not result.errors:
                 self._values, self._warnings = values, result.warnings
@@ -113,13 +133,24 @@ class BatterySetupMixin:
             return f"- Cell charge voltage: {standard / 1000:.2f} V (the standard for {v['chemistry']})\n"
         return f"- Cell charge voltage: {mv / 1000:.2f} V (the standard is {standard / 1000:.2f} V)\n"
 
+    @staticmethod
+    def _charge_options_lines(v: dict[str, Any]) -> str:
+        """The summary lines for the highest charging temperature and the termination current, or nothing for older firmware."""
+        if "max_charge_temperature_c" not in v:
+            return ""
+        temp = v["max_charge_temperature_c"] or DEFAULT_MAX_CHARGE_TEMP_C
+        ma = v["termination_current_ma"]
+        auto = auto_termination_ma(v["chemistry"], v["capacity_mah"])
+        return (f"\n- Highest charging temperature: {temp} °C{' (the default)' if not v['max_charge_temperature_c'] else ''}"
+                f"\n- Charge termination current: {ma or auto} mA{' (automatic)' if not ma else ''}")
+
     def _confirm_placeholders(self, error: str = "") -> dict[str, str]:
         v = self._values
         energy = v["energy_mwh"] or default_energy_mwh(v["chemistry"], v["capacity_mah"])
         summary = (
             f"- Cell chemistry: {v['chemistry']}\n- Capacity: {v['capacity_mah']} mAh\n- Energy: {energy} mWh"
             f"{' (worked out)' if not v['energy_mwh'] else ''}\n- Default charge current: {v['charge_current_ma']} mA\n"
-            f"{self._voltage_line(v)}- Thermistors fitted: {v['thermistors']}")
+            f"{self._voltage_line(v)}- Thermistors fitted: {v['thermistors']}{self._charge_options_lines(v)}")
         warnings = "".join(f"\n\n**Check:** {w}" for w in self._warnings)
         return {"device": self._label(), "summary": summary, "warnings": warnings, "error": error}
 
