@@ -22,7 +22,76 @@
   "issues": {
     "chem_mismatch": {
       "title": "Fuel gauge chemistry does not match the selected cell",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to open the battery setup and choose the chemistry that matches the fuel gauge's table (or load a matching table with bqStudio).",
+      "fix_flow": {
+        "step": {
+          "battery_values": {
+            "title": "Set up the battery",
+            "description": "Enter the details of the pack connected to {device}. Nothing is written until you confirm. Charging stays off until you turn it on.",
+            "data": {
+              "chemistry": "Cell chemistry",
+              "capacity_mah": "Capacity",
+              "energy_mwh": "Energy (0 works it out)",
+              "charge_current_ma": "Default charge current",
+              "thermistors": "Thermistors fitted",
+              "cell_charge_voltage": "Cell charge voltage (0 = standard)"
+            },
+            "data_description": {
+              "chemistry": "The chemistry of the pack. Li-ion raises the charge limit to 4.2 V; LiFePO4 charges to 3.65 V.",
+              "capacity_mah": "The pack's rated capacity. The charger ends the charge at C/10 of this.",
+              "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
+              "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
+              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one if the cell's data sheet gives it (for example 3.60 V); lower is always the safe direction. It can never be higher than the standard."
+            }
+          },
+          "battery_confirm": {
+            "title": "Confirm the battery setup",
+            "description": "These values will be written to {device}'s charger and fuel gauge:\n\n{summary}{warnings}\n\nCharging is not turned on."
+          },
+          "battery_done": {
+            "title": "Battery setup recorded",
+            "description": "{device} now remembers that its setup is done, even if this integration is removed.\n\nNext: load the fuel gauge's chemistry table if you have not, run the gauge calibrations, enable Impedance Track, then run a full charge and discharge so the gauge can learn the pack. Turn Enable Charging on when you are ready."
+          },
+          "satellites": {
+            "title": "Satellite addresses",
+            "description": "Choose the I2C addresses each satellite on {device} uses. They must match the jumpers on the satellite: the ADS1115 (soil moisture) address comes from its ADDR pin and the DS2482 (soil temperature) address from AD0 and AD1. Two satellites cannot share an address.\n{satellites}{scan_note}",
+            "data": {
+              "sat_0_ads": "Satellite 1: ADS1115 address",
+              "sat_0_ds": "Satellite 1: DS2482 address",
+              "sat_1_ads": "Satellite 2: ADS1115 address",
+              "sat_1_ds": "Satellite 2: DS2482 address",
+              "sat_2_ads": "Satellite 3: ADS1115 address",
+              "sat_2_ds": "Satellite 3: DS2482 address",
+              "sat_3_ads": "Satellite 4: ADS1115 address",
+              "sat_3_ds": "Satellite 4: DS2482 address"
+            }
+          },
+          "satellites_applied": {
+            "title": "Power cycle to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "menu_options": {
+              "power_cycle": "Power cycle the board now",
+              "satellites_later": "I will do it later"
+            }
+          },
+          "satellites_done": {
+            "title": "Satellite addresses saved",
+            "description": "{device} will use these addresses after its next boot."
+          }
+        },
+        "error": {
+          "chemistry_invalid": "Choose LiFePO4 or Li-ion.",
+          "capacity_invalid": "The capacity has to be 100 to 20000 mAh.",
+          "energy_invalid": "The energy has to be 0 or 100 to 32767 mWh.",
+          "current_invalid": "The charge current has to be 100 to 2000 mA.",
+          "thermistors_invalid": "Choose which thermistors are fitted.",
+          "apply_failed": "The board did not accept the setup: {error}",
+          "address_invalid": "Choose one of the listed addresses.",
+          "address_duplicate": "Another satellite already uses this address.",
+          "voltage_invalid": "The charge voltage has to be 0 (the standard) or between 3.35 V and the standard for the chemistry, and never above it."
+        }
+      }
     },
     "chem_no_relax": {
       "title": "Fuel gauge LiFePO4 learning mode is off",
@@ -34,15 +103,60 @@
     },
     "ts_no_probe": {
       "title": "Temperature probe fault",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to choose which thermistors are fitted.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Which thermistors are fitted?",
+            "description": "Choose the thermistors fitted to {device}. A missing one makes the charger refuse to charge unless it is set to ignore it, and with the charger's thermistor ignored its temperature protection is off, so only choose what the board really has.",
+            "data": {
+              "thermistors": "Thermistors fitted"
+            },
+            "data_description": {
+              "thermistors": "Both: the charger's (J302) and the fuel gauge's (J401). Charger Only: the gauge uses its own sensor. Gauge Only or None: the charger ignores its thermistor input."
+            }
+          }
+        },
+        "abort": {
+          "entity_missing": "The board's TS Enable setting is not available. Check that the board is online."
+        }
+      }
     },
     "ts_unpopulated": {
       "title": "TS sensor not populated",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to choose which thermistors are fitted.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Which thermistors are fitted?",
+            "description": "Choose the thermistors fitted to {device}. A missing one makes the charger refuse to charge unless it is set to ignore it, and with the charger's thermistor ignored its temperature protection is off, so only choose what the board really has.",
+            "data": {
+              "thermistors": "Thermistors fitted"
+            },
+            "data_description": {
+              "thermistors": "Both: the charger's (J302) and the fuel gauge's (J401). Charger Only: the gauge uses its own sensor. Gauge Only or None: the charger ignores its thermistor input."
+            }
+          }
+        },
+        "abort": {
+          "entity_missing": "The board's TS Enable setting is not available. Check that the board is online."
+        }
+      }
     },
     "hiz_stuck": {
       "title": "Charger stuck in HIZ with a panel connected",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to turn the charger's HIZ mode off.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Turn HIZ mode off",
+            "description": "{device}'s charger is in HIZ mode, so it ignores the solar input. Turn Charger HIZ Mode off?"
+          }
+        },
+        "abort": {
+          "entity_missing": "The setting is not available. Check that the board is online."
+        }
+      }
     },
     "register_corrections": {
       "title": "Charger registers keep changing",
@@ -54,7 +168,76 @@
     },
     "gauge_setup": {
       "title": "Fuel gauge setup does not match the configuration",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to run the battery setup again, which writes the cell's settings to the fuel gauge.",
+      "fix_flow": {
+        "step": {
+          "battery_values": {
+            "title": "Set up the battery",
+            "description": "Enter the details of the pack connected to {device}. Nothing is written until you confirm. Charging stays off until you turn it on.",
+            "data": {
+              "chemistry": "Cell chemistry",
+              "capacity_mah": "Capacity",
+              "energy_mwh": "Energy (0 works it out)",
+              "charge_current_ma": "Default charge current",
+              "thermistors": "Thermistors fitted",
+              "cell_charge_voltage": "Cell charge voltage (0 = standard)"
+            },
+            "data_description": {
+              "chemistry": "The chemistry of the pack. Li-ion raises the charge limit to 4.2 V; LiFePO4 charges to 3.65 V.",
+              "capacity_mah": "The pack's rated capacity. The charger ends the charge at C/10 of this.",
+              "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
+              "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
+              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one if the cell's data sheet gives it (for example 3.60 V); lower is always the safe direction. It can never be higher than the standard."
+            }
+          },
+          "battery_confirm": {
+            "title": "Confirm the battery setup",
+            "description": "These values will be written to {device}'s charger and fuel gauge:\n\n{summary}{warnings}\n\nCharging is not turned on."
+          },
+          "battery_done": {
+            "title": "Battery setup recorded",
+            "description": "{device} now remembers that its setup is done, even if this integration is removed.\n\nNext: load the fuel gauge's chemistry table if you have not, run the gauge calibrations, enable Impedance Track, then run a full charge and discharge so the gauge can learn the pack. Turn Enable Charging on when you are ready."
+          },
+          "satellites": {
+            "title": "Satellite addresses",
+            "description": "Choose the I2C addresses each satellite on {device} uses. They must match the jumpers on the satellite: the ADS1115 (soil moisture) address comes from its ADDR pin and the DS2482 (soil temperature) address from AD0 and AD1. Two satellites cannot share an address.\n{satellites}{scan_note}",
+            "data": {
+              "sat_0_ads": "Satellite 1: ADS1115 address",
+              "sat_0_ds": "Satellite 1: DS2482 address",
+              "sat_1_ads": "Satellite 2: ADS1115 address",
+              "sat_1_ds": "Satellite 2: DS2482 address",
+              "sat_2_ads": "Satellite 3: ADS1115 address",
+              "sat_2_ds": "Satellite 3: DS2482 address",
+              "sat_3_ads": "Satellite 4: ADS1115 address",
+              "sat_3_ds": "Satellite 4: DS2482 address"
+            }
+          },
+          "satellites_applied": {
+            "title": "Power cycle to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "menu_options": {
+              "power_cycle": "Power cycle the board now",
+              "satellites_later": "I will do it later"
+            }
+          },
+          "satellites_done": {
+            "title": "Satellite addresses saved",
+            "description": "{device} will use these addresses after its next boot."
+          }
+        },
+        "error": {
+          "chemistry_invalid": "Choose LiFePO4 or Li-ion.",
+          "capacity_invalid": "The capacity has to be 100 to 20000 mAh.",
+          "energy_invalid": "The energy has to be 0 or 100 to 32767 mWh.",
+          "current_invalid": "The charge current has to be 100 to 2000 mA.",
+          "thermistors_invalid": "Choose which thermistors are fitted.",
+          "apply_failed": "The board did not accept the setup: {error}",
+          "address_invalid": "Choose one of the listed addresses.",
+          "address_duplicate": "Another satellite already uses this address.",
+          "voltage_invalid": "The charge voltage has to be 0 (the standard) or between 3.35 V and the standard for the chemistry, and never above it."
+        }
+      }
     },
     "poor_source": {
       "title": "Charger rejects the solar input",
@@ -74,7 +257,18 @@
     },
     "charging_off": {
       "title": "Charging has been switched off for a long time",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to turn Enable Charging on.",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Turn charging on",
+            "description": "{device} has had charging switched off for a long time. Turn Enable Charging on? The charger then charges the pack from any live input."
+          }
+        },
+        "abort": {
+          "entity_missing": "The setting is not available. Check that the board is online."
+        }
+      }
     },
     "gauge_not_learned": {
       "title": "Fuel gauge has not learned the pack",
@@ -86,7 +280,76 @@
     },
     "no_end_of_charge": {
       "title": "Gauge missed the end of charge",
-      "description": "{device}: {detail}"
+      "description": "{device}: {detail} Fix it to open the battery setup, where the charge termination current and the cell settings can be checked.",
+      "fix_flow": {
+        "step": {
+          "battery_values": {
+            "title": "Set up the battery",
+            "description": "Enter the details of the pack connected to {device}. Nothing is written until you confirm. Charging stays off until you turn it on.",
+            "data": {
+              "chemistry": "Cell chemistry",
+              "capacity_mah": "Capacity",
+              "energy_mwh": "Energy (0 works it out)",
+              "charge_current_ma": "Default charge current",
+              "thermistors": "Thermistors fitted",
+              "cell_charge_voltage": "Cell charge voltage (0 = standard)"
+            },
+            "data_description": {
+              "chemistry": "The chemistry of the pack. Li-ion raises the charge limit to 4.2 V; LiFePO4 charges to 3.65 V.",
+              "capacity_mah": "The pack's rated capacity. The charger ends the charge at C/10 of this.",
+              "energy_mwh": "Capacity times the nominal cell voltage. Leave 0 to have it worked out.",
+              "charge_current_ma": "Used at every boot. 100 to 2000 mA; the board's copper is rated for 2 A.",
+              "thermistors": "Which of the charger's (J302) and the fuel gauge's (J401) thermistors are fitted. A missing one makes the charger refuse to charge unless it is set to ignore it.",
+              "cell_charge_voltage": "The most each cell is charged to, per cell. 0 uses the standard for the chemistry (3.65 V LiFePO4, 4.20 V Li-ion). Set a lower one if the cell's data sheet gives it (for example 3.60 V); lower is always the safe direction. It can never be higher than the standard."
+            }
+          },
+          "battery_confirm": {
+            "title": "Confirm the battery setup",
+            "description": "These values will be written to {device}'s charger and fuel gauge:\n\n{summary}{warnings}\n\nCharging is not turned on."
+          },
+          "battery_done": {
+            "title": "Battery setup recorded",
+            "description": "{device} now remembers that its setup is done, even if this integration is removed.\n\nNext: load the fuel gauge's chemistry table if you have not, run the gauge calibrations, enable Impedance Track, then run a full charge and discharge so the gauge can learn the pack. Turn Enable Charging on when you are ready."
+          },
+          "satellites": {
+            "title": "Satellite addresses",
+            "description": "Choose the I2C addresses each satellite on {device} uses. They must match the jumpers on the satellite: the ADS1115 (soil moisture) address comes from its ADDR pin and the DS2482 (soil temperature) address from AD0 and AD1. Two satellites cannot share an address.\n{satellites}{scan_note}",
+            "data": {
+              "sat_0_ads": "Satellite 1: ADS1115 address",
+              "sat_0_ds": "Satellite 1: DS2482 address",
+              "sat_1_ads": "Satellite 2: ADS1115 address",
+              "sat_1_ds": "Satellite 2: DS2482 address",
+              "sat_2_ads": "Satellite 3: ADS1115 address",
+              "sat_2_ds": "Satellite 3: DS2482 address",
+              "sat_3_ads": "Satellite 4: ADS1115 address",
+              "sat_3_ds": "Satellite 4: DS2482 address"
+            }
+          },
+          "satellites_applied": {
+            "title": "Power cycle to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "menu_options": {
+              "power_cycle": "Power cycle the board now",
+              "satellites_later": "I will do it later"
+            }
+          },
+          "satellites_done": {
+            "title": "Satellite addresses saved",
+            "description": "{device} will use these addresses after its next boot."
+          }
+        },
+        "error": {
+          "chemistry_invalid": "Choose LiFePO4 or Li-ion.",
+          "capacity_invalid": "The capacity has to be 100 to 20000 mAh.",
+          "energy_invalid": "The energy has to be 0 or 100 to 32767 mWh.",
+          "current_invalid": "The charge current has to be 100 to 2000 mA.",
+          "thermistors_invalid": "Choose which thermistors are fitted.",
+          "apply_failed": "The board did not accept the setup: {error}",
+          "address_invalid": "Choose one of the listed addresses.",
+          "address_duplicate": "Another satellite already uses this address.",
+          "voltage_invalid": "The charge voltage has to be 0 (the standard) or between 3.35 V and the standard for the chemistry, and never above it."
+        }
+      }
     },
     "temp_disagree": {
       "title": "Pack temperature readings disagree",

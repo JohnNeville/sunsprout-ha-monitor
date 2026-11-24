@@ -9,7 +9,7 @@ SunSprout Monitor looks after your [SunSprout](https://github.com/JohnNeville/Su
 - **Guides you through the first-time setup** of a new board: the cell chemistry, capacity, charge current and thermistors, and the I2C addresses of any satellites, checked before the board ever charges.
 - **Watches for problems** the board can only write to its log (a wrong chemistry table, a missing thermistor, a stuck charger, a pack that is not charging and more) and shows them as **Repairs** in Home Assistant, each clearing by itself when the problem goes away.
 
-It does not add devices of its own. It reads the boards you already have in Home Assistant through the ESPHome integration, and only changes anything when you confirm a setup.
+It reads the boards you already have in Home Assistant through the ESPHome integration. Under each board it adds a small **monitor** device (shown as connected via the board's own device) that holds that board's problems, so you can track them on a dashboard or in an automation. It only changes a setting on a board when you confirm a fix or a setup.
 
 ## What you need
 
@@ -55,6 +55,32 @@ To change anything later, select **Configure** on the integration:
 | **Set up a board's battery** | The guided setup below, to do again or to change the cell |
 | **Set up a board's satellites** | Only the satellite addresses |
 | **Charge temperature windows** | The limits from step 2 |
+
+## The monitor device and the Fix buttons
+
+Each board gets a **monitor** device, linked to the board's own device (it shows "Connected via" the board), with:
+
+| Entity | What it tells you |
+|---|---|
+| **Problem** | On while the board has any open problem. Its `problems` attribute lists them. |
+| **Open problems** | How many problems are open on the board. |
+| **Setup** | The board's own record of its first-time setup: `complete`, `unset`, `outdated`, `modified` (values changed by hand since) or `unsupported` (older firmware). |
+
+The integration also keeps one **Open problems** sensor for all boards together.
+
+Problems whose cause is a setting are **fixable**: select the Repair, then **Fix**, and the flow changes that setting after you confirm it.
+
+| Repair | What Fix does |
+|---|---|
+| Battery setup not completed, or has new options | Opens the battery setup guide |
+| Fuel gauge setup does not match the configuration | Opens the battery setup guide, which writes the cell's settings to the gauge again |
+| Gauge missed the end of charge | Opens the battery setup guide, where the charge termination current and the cell settings can be checked |
+| Fuel gauge chemistry does not match the selected cell | Opens the battery setup guide, to choose the chemistry that matches the gauge's table |
+| Charging has been switched off for a long time | Turns **Enable Charging** on |
+| TS sensor not populated, or temperature probe fault | Asks which thermistors are fitted and sets **TS Enable** |
+| Charger stuck in HIZ with a panel connected | Turns **Charger HIZ Mode** off |
+
+The other Repairs describe something to check on the board or the pack (a chemistry table to load, a pack that is too hot, a panel in the dark), so they have no Fix button.
 
 ## First-time battery setup
 

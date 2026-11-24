@@ -107,3 +107,16 @@ def test_cell_charge_voltage_can_only_lower_the_standard():
     assert check_setup({**li, "cell_charge_voltage_mv": 3300}).errors == {"cell_charge_voltage_mv": "voltage_invalid"}
     # a board without the setting just does not send it
     assert check_setup(GOOD, 0x0423).errors == {}
+
+
+def test_fix_flows_have_strings():
+    """Every issue with a Fix button has a fix_flow in the strings, and the flow kinds are known."""
+    import json, pathlib
+    from custom_components.sunsprout_monitor.const import FIX_FLOWS
+    base = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "sunsprout_monitor"
+    for name in ("strings.json", "translations/en.json"):
+        issues = json.loads((base / name).read_text())["issues"]
+        for key, kind in FIX_FLOWS.items():
+            assert kind in ("setup", "enable_charging", "thermistors", "hiz"), (key, kind)
+            assert "fix_flow" in issues[key], (name, key)
+            assert "Fix it" in issues[key]["description"] or key in ("setup_unset", "setup_outdated"), (name, key)

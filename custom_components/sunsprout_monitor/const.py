@@ -30,8 +30,25 @@ LEGACY_LIION_IDS = frozenset({2044})
 # How often the board is asked for its setup state and gauge chemistry ID (also asked when it reconnects or Cell Chemistry changes)
 SETUP_INFO_MAX_AGE_HOURS = 24
 
-# Issues that open the first-time battery setup
-FIXABLE_KEYS = ("setup_unset", "setup_outdated")
+# Issues with a Fix button, and the flow each one opens. "setup" is the battery setup guide (the cause is a cell setting); the
+# others change one setting on the board after you confirm it.
+FIX_FLOWS = {
+    "setup_unset": "setup",
+    "setup_outdated": "setup",
+    "gauge_setup": "setup",
+    "no_end_of_charge": "setup",
+    "chem_mismatch": "setup",
+    "charging_off": "enable_charging",
+    "ts_unpopulated": "thermistors",
+    "ts_no_probe": "thermistors",
+    "hiz_stuck": "hiz",
+}
+FIXABLE_KEYS = tuple(FIX_FLOWS)
+
+# The board entities the fix flows change, by their name on the board (lower case).
+ENABLE_CHARGING_NAME = "enable charging"
+HIZ_NAME = "charger hiz mode"
+TS_ENABLE_NAME = "ts enable"
 
 HIZ_STUCK_MINUTES = 10
 REGISTER_CORRECTIONS_LIMIT = 10
