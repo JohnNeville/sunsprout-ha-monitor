@@ -68,17 +68,20 @@ def satellites(hass: HomeAssistant, hub_dev) -> list[dict[str, Any]]:
     return sorted(out, key=lambda s: s["label"])
 
 
-def power_cycle_entity(hass: HomeAssistant, hub_dev) -> str | None:
-    """The hub's Power Cycle Board button, which applies a changed satellite address at once."""
-    for ent in er.async_entries_for_device(er.async_get(hass), hub_dev.id):
-        if ent.domain == "button" and (ent.original_name or ent.name or "").lower() == "power cycle board" and not ent.disabled:
-            return ent.entity_id
-    return None
-
-
 def find_entity(hass: HomeAssistant, hub_dev, domain: str, name: str) -> str | None:
     """The entity id of a board's entity of one domain with one name (lower case, as the board names it), if it is enabled."""
     for ent in er.async_entries_for_device(er.async_get(hass), hub_dev.id):
         if ent.domain == domain and not ent.disabled and (ent.original_name or ent.name or "").lower() == name:
             return ent.entity_id
+    return None
+
+
+def apply_restart_button(hass: HomeAssistant, hub_dev) -> tuple[str, str] | None:
+    """(setup step, entity id) of the button that restarts the board so a changed satellite address applies. The Restart
+    button leaves the power rails alone. Firmware without it only has Power Cycle Board, which on a low battery with no
+    input may leave the board off."""
+    for step, name in (("restart_board", "restart"), ("power_cycle", "power cycle board")):
+        entity = find_entity(hass, hub_dev, "button", name)
+        if entity:
+            return step, entity
     return None

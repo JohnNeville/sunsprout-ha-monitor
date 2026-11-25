@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_STATE_CHANGED
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN
@@ -18,10 +19,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mon = Monitor(hass, entry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = mon
     entry.async_on_unload(async_track_time_interval(hass, mon.evaluate, timedelta(minutes=1)))
+    entry.async_on_unload(hass.bus.async_listen(EVENT_STATE_CHANGED, mon.state_changed, event_filter=_is_button))
     entry.async_on_unload(entry.add_update_listener(_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     mon.evaluate()
     return True
+
+
+@callback
+def _is_button(data) -> bool:
+    return data["entity_id"].startswith("button.")
 
 
 async def _options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:

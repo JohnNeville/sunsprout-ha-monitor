@@ -107,7 +107,7 @@ If the board has [SunSprout Satellites](https://github.com/JohnNeville/SunSprout
 
 The board **scans its I2C bus first** and the guide offers only the addresses that answered, so a chip that is not there cannot be chosen. An answer at an address does not say which chip it is. A satellite's present setting always stays in the list, marked "not detected" when nothing answers there, which is a good sign the jumpers and the setting disagree. If the scan cannot run (older firmware, or the board's user 3V3 rail is off) every address is listed and a note says why.
 
-The board only reads the addresses when it starts, so the guide offers to power cycle it (the board's **Power Cycle Board** button) or lets you do it later.
+The board only reads the addresses when it starts, so the guide offers to restart it (the board's **Restart** button; older firmware only has **Power Cycle Board**) or lets you do it later.
 
 ## What it checks
 

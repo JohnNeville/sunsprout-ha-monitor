@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -15,8 +15,8 @@ from homeassistant.util import dt as dt_util
 
 from .board import SIGNAL_BOARD_UPDATE
 from .const import DOMAIN, FIXABLE_KEYS, KEY_ENTITIES, SETUP_INFO_MAX_AGE_HOURS, UNAVAILABLE_MINUTES
-from .device_actions import ActionUnavailable, async_call_action, entry_ids
-from .rules import Problem, check, hold_problems, windows_from_options
+from .device_actions import ActionUnavailable, async_call_action, entry_ids, find_entity
+from .rules import PowerCyclePress, Problem, check, follow_power_cycle, hold_problems, windows_from_options
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ class Monitor:
         self.problems_by_device: dict[str, list[Problem]] = {}  # ESPHome device id -> problems, for the board's monitor device
         self._add_entities: dict[str, object] = {}  # platform -> async_add_entities
         self._with_entities: set[str] = set()  # device ids whose monitor device and entities exist
+        self._presses: dict[str, PowerCyclePress] = {}  # device id -> a Power Cycle Board press being watched
 
     def _boards(self):
         """Yield (device, {lower name: State}) for ESPHome devices that look like SunSprout."""
@@ -118,6 +119,27 @@ class Monitor:
             self.hass.async_create_task(self.async_refresh_setup_info(dev.id))
 
     @callback
+    def state_changed(self, event: Event) -> None:
+        """Note a press of a board's Power Cycle Board button, so a board that does not come back is reported."""
+        old, new = event.data.get("old_state"), event.data.get("new_state")
+        # A button's state is the time of its last press. Coming back from unavailable restores an old one: not a press.
+        if old is None or new is None or old.state == STATE_UNAVAILABLE:
+            return
+        pressed = dt_util.parse_datetime(new.state)
+        now = dt_util.utcnow()
+        if pressed is None or pressed.tzinfo is None or abs((now - pressed).total_seconds()) > 60:
+            return
+        ent = er.async_get(self.hass).async_get(new.entity_id)
+        if ent is None or ent.device_id not in self.problems_by_device:
+            return
+        if (ent.original_name or ent.name or "").lower() != "power cycle board":
+            return
+        dev = dr.async_get(self.hass).async_get(ent.device_id)
+        status_id = find_entity(self.hass, dev, "sensor", "power cycle status") if dev else None
+        status = self.hass.states.get(status_id) if status_id else None
+        self._presses[ent.device_id] = PowerCyclePress(now, status.state if status else None)
+
+    @callback
     def evaluate(self, _now=None) -> None:
         now = dt_util.utcnow()
         wanted: set[str] = set()
@@ -146,6 +168,14 @@ class Monitor:
             if len(gone) == len(by_name) and all(
                     (now - s.last_changed) > timedelta(minutes=UNAVAILABLE_MINUTES) for s in gone):
                 found = [Problem("unavailable", f"no data for over {UNAVAILABLE_MINUTES} min")]
+            press = self._presses.get(dev.id)
+            if press is not None:
+                reachable = states.get("charger fault") not in (STATE_UNAVAILABLE, STATE_UNKNOWN, None)
+                keep, stuck = follow_power_cycle(press, reachable, now)
+                if not keep:
+                    del self._presses[dev.id]
+                if stuck:
+                    found.append(stuck)
             self.problems[label] = found
             self.problems_by_device[dev.id] = found
             self._ensure_monitor_device(dev, label)
