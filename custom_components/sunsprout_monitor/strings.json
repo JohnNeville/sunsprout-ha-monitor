@@ -20,6 +20,10 @@
     }
   },
   "issues": {
+    "power_cycle_stuck": {
+      "title": "Board did not come back after a power cycle",
+      "description": "{device}: {detail} With no input power and a low battery the charger may not start the board again by itself. Connect USB or solar power to start it. To reboot without this risk use the board's Restart button. This clears when the board is back."
+    },
     "chem_mismatch": {
       "title": "Fuel gauge chemistry does not match the selected cell",
       "description": "{device}: {detail} Fix it to open the battery setup and choose the chemistry that matches the fuel gauge's table (or load a matching table with bqStudio).",
@@ -68,10 +72,11 @@
             }
           },
           "satellites_applied": {
-            "title": "Power cycle to apply",
-            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "title": "Restart to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Restarting the board now applies it at once; the board is offline for under a minute.",
             "menu_options": {
-              "power_cycle": "Power cycle the board now",
+              "restart_board": "Restart the board now",
+              "power_cycle": "Power cycle the board now (older firmware: with no input and a low battery it may stay off until power returns)",
               "satellites_later": "I will do it later"
             }
           },
@@ -214,10 +219,11 @@
             }
           },
           "satellites_applied": {
-            "title": "Power cycle to apply",
-            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "title": "Restart to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Restarting the board now applies it at once; the board is offline for under a minute.",
             "menu_options": {
-              "power_cycle": "Power cycle the board now",
+              "restart_board": "Restart the board now",
+              "power_cycle": "Power cycle the board now (older firmware: with no input and a low battery it may stay off until power returns)",
               "satellites_later": "I will do it later"
             }
           },
@@ -326,10 +332,11 @@
             }
           },
           "satellites_applied": {
-            "title": "Power cycle to apply",
-            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "title": "Restart to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Restarting the board now applies it at once; the board is offline for under a minute.",
             "menu_options": {
-              "power_cycle": "Power cycle the board now",
+              "restart_board": "Restart the board now",
+              "power_cycle": "Power cycle the board now (older firmware: with no input and a low battery it may stay off until power returns)",
               "satellites_later": "I will do it later"
             }
           },
@@ -418,10 +425,11 @@
             }
           },
           "satellites_applied": {
-            "title": "Power cycle to apply",
-            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "title": "Restart to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Restarting the board now applies it at once; the board is offline for under a minute.",
             "menu_options": {
-              "power_cycle": "Power cycle the board now",
+              "restart_board": "Restart the board now",
+              "power_cycle": "Power cycle the board now (older firmware: with no input and a low battery it may stay off until power returns)",
               "satellites_later": "I will do it later"
             }
           },
@@ -499,10 +507,11 @@
             }
           },
           "satellites_applied": {
-            "title": "Power cycle to apply",
-            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+            "title": "Restart to apply",
+            "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Restarting the board now applies it at once; the board is offline for under a minute.",
             "menu_options": {
-              "power_cycle": "Power cycle the board now",
+              "restart_board": "Restart the board now",
+              "power_cycle": "Power cycle the board now (older firmware: with no input and a low battery it may stay off until power returns)",
               "satellites_later": "I will do it later"
             }
           },
@@ -602,10 +611,11 @@
         }
       },
       "satellites_applied": {
-        "title": "Power cycle to apply",
-        "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Power cycling the board now applies it at once and the board is off for about ten seconds.",
+        "title": "Restart to apply",
+        "description": "{device} reads the addresses when it starts, so a change only takes effect after the next boot. Restarting the board now applies it at once; the board is offline for under a minute.",
         "menu_options": {
-          "power_cycle": "Power cycle the board now",
+          "restart_board": "Restart the board now",
+          "power_cycle": "Power cycle the board now (older firmware: with no input and a low battery it may stay off until power returns)",
           "satellites_later": "I will do it later"
         }
       },

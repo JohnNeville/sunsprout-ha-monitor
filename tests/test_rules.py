@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from custom_components.sunsprout_monitor.rules import check, hold_problems, windows_from_options
+from custom_components.sunsprout_monitor.rules import PowerCyclePress, check, follow_power_cycle, hold_problems, windows_from_options
 
 
 def keys(*a, **k):
@@ -221,3 +221,25 @@ def test_disabled_ts_input_ignored_for_temperature_checks():
     assert keys(s) == set()
     s2 = {**s, "ts enable": "Charger Only", "battery temperature": "47"}
     assert keys(s2) == {"temp_range"}
+
+
+def test_power_cycle_that_comes_back():
+    start = datetime(2026, 1, 1)
+    press = PowerCyclePress(start, "Safe")
+    # still reachable right after the press: HA has not noticed it go yet
+    assert follow_power_cycle(press, True, start + timedelta(minutes=1)) == (True, None)
+    assert follow_power_cycle(press, False, start + timedelta(minutes=2)) == (True, None)
+    assert follow_power_cycle(press, True, start + timedelta(minutes=3)) == (False, None)
+
+
+def test_power_cycle_stuck_until_back():
+    start = datetime(2026, 1, 1)
+    press = PowerCyclePress(start, "Risky: no input, pack 3.30 V; may stay off until power returns")
+    keep, problem = follow_power_cycle(press, False, start + timedelta(minutes=5))
+    assert keep and problem.key == "power_cycle_stuck" and "3.30 V" in problem.detail
+    assert follow_power_cycle(press, True, start + timedelta(hours=9)) == (False, None)
+
+
+def test_power_cycle_quick_restart_ends_the_watch():
+    start = datetime(2026, 1, 1)
+    assert follow_power_cycle(PowerCyclePress(start), True, start + timedelta(minutes=5)) == (False, None)

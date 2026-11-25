@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from .const import (
     CHARGE_TEMPERATURE_C,
@@ -12,6 +13,7 @@ from .const import (
     LIFEPO4_OTHER_HIGH_BYTES,
     LIFEPO4_RELAX_HIGH_BYTE,
     LIION_HIGH_BYTES,
+    POWER_CYCLE_STUCK_MINUTES,
     NOT_LIFEPO4_IDS,
     DARK_PANEL_LUX,
     DISCHARGING_WITH_PANEL_MINUTES,
@@ -44,6 +46,28 @@ def _num(v):
         return float(v)
     except (TypeError, ValueError):
         return None
+
+
+@dataclass
+class PowerCyclePress:
+    """A press of Power Cycle Board that is being watched until the board is back."""
+    at: datetime
+    status: str | None = None  # the board's Power Cycle Status at the press, when its firmware has it
+    went_away: bool = False
+
+
+def follow_power_cycle(press: PowerCyclePress, reachable: bool, now: datetime) -> tuple[bool, Problem | None]:
+    """(keep watching, problem). A board that is reachable again, or never dropped, ends the watch."""
+    late = now - press.at >= timedelta(minutes=POWER_CYCLE_STUCK_MINUTES)
+    if reachable:
+        return not (press.went_away or late), None
+    press.went_away = True
+    if not late:
+        return True, None
+    detail = f"Power Cycle Board was pressed and the board has not answered for over {POWER_CYCLE_STUCK_MINUTES} min."
+    if press.status and press.status.startswith("Risky"):
+        detail += f" At the press it reported: {press.status}."
+    return True, Problem("power_cycle_stuck", detail)
 
 
 def hold_problems(since: dict, dev_id: str, found: list[Problem], now) -> list[Problem]:

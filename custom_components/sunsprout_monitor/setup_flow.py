@@ -15,7 +15,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.selector import (
     NumberSelector, SelectOptionDict, NumberSelectorConfig, NumberSelectorMode, SelectSelector, SelectSelectorConfig, SelectSelectorMode)
 
-from .device_actions import ActionUnavailable, async_call_action, power_cycle_entity, satellites
+from .device_actions import ActionUnavailable, apply_restart_button, async_call_action, satellites
 from .battery_setup import (
     ADS_ADDRESSES, CAPACITY_RANGE_MAH, CHARGE_CURRENT_RANGE_MA, CHEMISTRIES, DEFAULT_MAX_CHARGE_TEMP_C, DS_ADDRESSES, ENERGY_RANGE_MWH,
     MAX_CHARGE_TEMP_RANGE_C, TERMINATION_RANGE_MA, TERMINATION_STEP_MA, THERMISTORS, address_choices, auto_termination_ma,
@@ -175,7 +175,7 @@ class BatterySetupMixin:
         return self._battery_finish()
 
     # --- Satellites: the I2C addresses of each satellite's two chips -----------------------------------------------------------
-    # The firmware keeps each choice in flash and gives it to the chips at the next boot, so a change needs a power cycle.
+    # The firmware keeps each choice in flash and gives it to the chips at the next boot, so a change needs a restart.
 
     def _hub(self):
         return dr.async_get(self.hass).async_get(self._dev_id)
@@ -239,14 +239,21 @@ class BatterySetupMixin:
                 "say which chip it is.")
 
     async def async_step_satellites_applied(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        options = ["power_cycle", "satellites_later"] if power_cycle_entity(self.hass, self._hub()) else ["satellites_later"]
+        button = apply_restart_button(self.hass, self._hub())
+        options = [button[0], "satellites_later"] if button else ["satellites_later"]
         return self.async_show_menu(step_id="satellites_applied", menu_options=options,
                                     description_placeholders={"device": self._label()})
 
+    async def async_step_restart_board(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        return await self._press_apply_button()
+
     async def async_step_power_cycle(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        entity = power_cycle_entity(self.hass, self._hub())
-        if entity:
-            await self.hass.services.async_call("button", "press", {"entity_id": entity}, blocking=True)
+        return await self._press_apply_button()
+
+    async def _press_apply_button(self) -> FlowResult:
+        button = apply_restart_button(self.hass, self._hub())
+        if button:
+            await self.hass.services.async_call("button", "press", {"entity_id": button[1]}, blocking=True)
         return await self._satellites_next()
 
     async def async_step_satellites_later(self, user_input: dict[str, Any] | None = None) -> FlowResult:

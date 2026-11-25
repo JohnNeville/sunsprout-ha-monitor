@@ -54,6 +54,7 @@ HIZ_STUCK_MINUTES = 10
 REGISTER_CORRECTIONS_LIMIT = 10
 UNEXPECTED_CORRECTIONS_LIMIT = 3
 UNAVAILABLE_MINUTES = 60
+POWER_CYCLE_STUCK_MINUTES = 5
 
 # Typical charge window per cell family, in C: (lowest, highest). Cells differ, so these are defaults; a chemistry
 # that is not listed is not checked. Above HARD_MAX_TEMPERATURE_C the pack is flagged whether or not it is charging.
